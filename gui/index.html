@@ -1041,8 +1041,6 @@
   </div>
 </div>
 
-<!-- Optional local auto-config (gitignored). Copy config.example.js -> config.local.js and fill in. -->
-<script src="config.local.js" onerror="void 0"></script>
 <script>
 // ─── State ─────────────────────────────────────────────────────
 let allNotes = [];
@@ -1092,21 +1090,14 @@ function saveSettings() {
   loadNotes();
 }
 
-// ─── Supabase REST helper ───────────────────────────────────────
+// ─── Supabase REST via the local proxy (key stays server-side) ──────────
+// We call same-origin /rest/v1/... — proxy.py injects the Supabase key.
+// Secret keys are blocked in browsers, so the key must never live here.
 async function sbGet(path, params = {}) {
-  const cfg = getConfig();
-  if (!cfg.url || !cfg.key) throw new Error('NOT_CONFIGURED');
-
   const qs = new URLSearchParams(params).toString();
-  const url = `${cfg.url}/rest/v1/${path}${qs ? '?' + qs : ''}`;
+  const url = `/rest/v1/${path}${qs ? '?' + qs : ''}`;
 
-  const res = await fetch(url, {
-    headers: {
-      'apikey': cfg.key,
-      'Authorization': `Bearer ${cfg.key}`,
-      'Accept': 'application/json',
-    }
-  });
+  const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
 
   if (!res.ok) {
     const txt = await res.text();
@@ -1116,13 +1107,10 @@ async function sbGet(path, params = {}) {
 }
 
 async function sbPatch(path, id, body) {
-  const cfg = getConfig();
-  const url = `${cfg.url}/rest/v1/${path}?id=eq.${id}`;
+  const url = `/rest/v1/${path}?id=eq.${id}`;
   const res = await fetch(url, {
     method: 'PATCH',
     headers: {
-      'apikey': cfg.key,
-      'Authorization': `Bearer ${cfg.key}`,
       'Content-Type': 'application/json',
       'Prefer': 'return=minimal',
     },
@@ -1133,13 +1121,6 @@ async function sbPatch(path, id, body) {
 
 // ─── Load notes ─────────────────────────────────────────────────
 async function loadNotes() {
-  const cfg = getConfig();
-  if (!cfg.url || !cfg.key) {
-    showSkeleton(true);
-    openSettings();
-    return;
-  }
-
   setRefreshing(true);
 
   try {
@@ -1588,27 +1569,10 @@ document.addEventListener('keydown', e => {
 (function init() {
   // Render static skeleton until data loads
   document.getElementById('notes-list').innerHTML = skeletonItems(8);
-
-  let cfg = getConfig();
-
-  // Convenience: if a local config file (gui/config.local.js, gitignored) defined
-  // window.NOTES_CONFIG, seed it once so you don't re-paste keys on every machine.
-  if ((!cfg.url || !cfg.key) && window.NOTES_CONFIG && window.NOTES_CONFIG.url && window.NOTES_CONFIG.key) {
-    saveConfig({ url: window.NOTES_CONFIG.url.replace(/\/$/, ''), key: window.NOTES_CONFIG.key });
-    cfg = getConfig();
-  }
-
-  if (cfg.url && cfg.key) {
-    loadNotes();
-  } else {
-    // No config yet — prompt user to enter credentials
-    document.getElementById('notes-list').innerHTML = `
-      <div class="empty-state">
-        <div class="empty-icon">⚙️</div>
-        <div class="empty-text">Click <strong>Config</strong> to connect to Supabase</div>
-      </div>`;
-    openSettings();
-  }
+  // Auth is handled server-side by proxy.py. Clear any secret key left in
+  // localStorage by the old (insecure) browser-key version.
+  try { localStorage.removeItem(CFG_KEY); } catch (e) {}
+  loadNotes();
 })();
 </script>
 </body>

@@ -5,9 +5,6 @@
 .env*.local
 !.env.example
 
-# Dashboard local creds (contains the service key)
-gui/config.local.js
-
 # Local state / logs produced by the sync job
 *.log
 *.err

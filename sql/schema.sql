@@ -21,7 +21,7 @@ create table if not exists notes (
   source_created_at  timestamptz,
   source_modified_at timestamptz,
   content_hash       text not null,                   -- sha256(title + body), used for dirty detection
-  embedding          vector(1536),                    -- <-- MATCH LIBRARIAN (dimension)
+  embedding          vector(3072),                    -- <-- MATCH LIBRARIAN: text-embedding-3-large
   summary            text,                            -- one line, agent-generated (v0b)
   enrichment_status  text not null default 'pending', -- pending | done | error
   enriched_at        timestamptz
@@ -29,8 +29,15 @@ create table if not exists notes (
 
 create index if not exists notes_modified_idx  on notes (source_modified_at desc);
 create index if not exists notes_status_idx    on notes (enrichment_status);
--- distance op MUST match the Librarian (cosine shown):
-create index if not exists notes_embedding_idx on notes using hnsw (embedding vector_cosine_ops);  -- <-- MATCH LIBRARIAN (metric)
+-- Distance op MUST match the Librarian (cosine shown).
+-- NOTE: pgvector's HNSW index caps at 2000 dims, but text-embedding-3-large is 3072.
+-- So we store full-precision vector(3072) (exact match to the Librarian's vectors) and
+-- build the HNSW index on a half-precision cast — the documented pgvector pattern for >2000 dims.
+-- Requires pgvector >= 0.7.0 (halfvec). Supabase has shipped this since mid-2024.
+-- To USE this index at query time, compare the cast, e.g.:
+--   order by embedding::halfvec(3072) <=> $query::halfvec(3072)
+create index if not exists notes_embedding_idx
+  on notes using hnsw ((embedding::halfvec(3072)) halfvec_cosine_ops);  -- <-- MATCH LIBRARIAN (metric)
 
 create table if not exists todos (
   id                 uuid primary key default gen_random_uuid(),

@@ -43,6 +43,12 @@ metric** as the Librarian, or cross-corpus search silently returns garbage. Conf
 Mirror both in [sql/schema.sql](sql/schema.sql) (lines marked `<-- MATCH LIBRARIAN`).
 This only blocks v0b (embeddings); v0a capture works regardless.
 
+**Configured for `text-embedding-3-large` (3072 dims, cosine).** Because pgvector's
+HNSW index caps at 2000 dims, the schema stores full-precision `vector(3072)` but
+indexes a `halfvec` cast — the standard pattern for >2000-dim embeddings (needs
+pgvector ≥ 0.7.0). Retrieval must compare the cast to hit the index:
+`order by embedding::halfvec(3072) <=> $q::halfvec(3072)`.
+
 ### 1. Credentials
 
 ```bash

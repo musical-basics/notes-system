@@ -1041,6 +1041,8 @@
   </div>
 </div>
 
+<!-- Optional local auto-config (gitignored). Copy config.example.js -> config.local.js and fill in. -->
+<script src="config.local.js" onerror="void 0"></script>
 <script>
 // ─── State ─────────────────────────────────────────────────────
 let allNotes = [];
@@ -1143,7 +1145,7 @@ async function loadNotes() {
   try {
     const limit = document.getElementById('limit-select').value;
     const params = {
-      select: 'id,title,folder,source_created_at,source_modified_at,enrichment_status,summary,body',
+      select: 'id,title,folder,source_created_at,source_modified_at,enrichment_status,summary,body,content_hash,enriched_at',
       order: 'source_modified_at.desc',
       limit,
     };
@@ -1587,7 +1589,14 @@ document.addEventListener('keydown', e => {
   // Render static skeleton until data loads
   document.getElementById('notes-list').innerHTML = skeletonItems(8);
 
-  const cfg = getConfig();
+  let cfg = getConfig();
+
+  // Convenience: if a local config file (gui/config.local.js, gitignored) defined
+  // window.NOTES_CONFIG, seed it once so you don't re-paste keys on every machine.
+  if ((!cfg.url || !cfg.key) && window.NOTES_CONFIG && window.NOTES_CONFIG.url && window.NOTES_CONFIG.key) {
+    saveConfig({ url: window.NOTES_CONFIG.url.replace(/\/$/, ''), key: window.NOTES_CONFIG.key });
+    cfg = getConfig();
+  }
 
   if (cfg.url && cfg.key) {
     loadNotes();

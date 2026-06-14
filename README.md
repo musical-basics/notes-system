@@ -102,6 +102,21 @@ launchctl print gui/$(id -u)/com.lionel.notesync | grep -E 'state|last exit'
 tail -f sync.log sync.err
 ```
 
+## Dashboard (gui/)
+
+A self-contained dark-theme dashboard to browse/search captured notes, view enrichment
+status, and check/close AI-extracted todos. Pure static HTML — the Supabase secret key
+lives only in your browser's localStorage (or a gitignored local config), never in git.
+
+```bash
+cp gui/config.example.js gui/config.local.js   # fill in URL + key (gitignored)
+./gui/serve.sh                                  # http://localhost:8787, opens browser
+```
+
+Without `config.local.js` it still works — click **Config** and paste your URL + key into
+the modal (stored in localStorage). Notes search works now; the todo sections populate
+once v0b enrichment runs.
+
 ## v0b: reading the todo board
 
 ```sql

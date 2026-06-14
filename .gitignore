@@ -1,0 +1,21 @@
+# Secrets — never commit
+.env
+*.env
+!.env.example
+
+# Local state / logs produced by the sync job
+*.log
+*.err
+.notesync_state.json
+
+# Generated launchd plist (contains absolute machine paths)
+launchd/com.lionel.notesync.plist
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# macOS
+.DS_Store

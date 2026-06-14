@@ -10,8 +10,11 @@ continue from a given index after an interruption.
 Steady-state incremental sync is handled separately by sync_notes.py + launchd; run
 this once to seed history, then never again.
 
+Notes.notes is ordered modification-descending, so index 0 is the most recently
+modified note. That means `--limit 100` backfills exactly the 100 most recent notes.
+
 Usage:
-  python3 extraction/backfill.py [--chunk 150] [--start 0]
+  python3 extraction/backfill.py [--chunk 150] [--start 0] [--limit N]
 """
 import os
 import sys
@@ -42,17 +45,25 @@ def dump_range(start: int, count: int) -> dict:
 def main():
     chunk = 150
     start = 0
+    limit = None   # max notes to process (from --start); None = whole library
     args = sys.argv[1:]
     for i, a in enumerate(args):
         if a == "--chunk":
             chunk = int(args[i + 1])
         elif a == "--start":
             start = int(args[i + 1])
+        elif a == "--limit":
+            limit = int(args[i + 1])
 
+    stop_at = (start + limit) if limit is not None else None
     total = None
     done = 0
     t0 = time.time()
     while True:
+        if stop_at is not None:
+            chunk = min(chunk, stop_at - start)
+            if chunk <= 0:
+                break
         try:
             res = dump_range(start, chunk)
         except RuntimeError as e:
@@ -73,7 +84,7 @@ def main():
         elapsed = time.time() - t0
         print(f"  [{start}->{end}/{total}] upserted {n} (running {done}) — {elapsed:.0f}s", flush=True)
 
-        if end >= total:
+        if end >= total or (stop_at is not None and end >= stop_at):
             break
         start = end
 

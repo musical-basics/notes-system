@@ -97,6 +97,9 @@ def content_hash(title: str, body: str) -> str:
     return hashlib.sha256(f"{title}\n{body}".encode("utf-8")).hexdigest()
 
 
+UPSERT_CHUNK = 200   # keep each POST small so a full backfill can't time out on one giant body
+
+
 def upsert(notes) -> int:
     if not notes:
         return 0
@@ -111,7 +114,8 @@ def upsert(notes) -> int:
     } for n in notes]
     url = f"{REST}/notes?on_conflict=source_id"
     headers = {**HDRS, "Prefer": "resolution=merge-duplicates,return=minimal"}
-    _request("POST", url, headers, json.dumps(payload))
+    for i in range(0, len(payload), UPSERT_CHUNK):
+        _request("POST", url, headers, json.dumps(payload[i:i + UPSERT_CHUNK]))
     return len(payload)
 
 

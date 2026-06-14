@@ -1,0 +1,1606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Notes Review — System Dashboard</title>
+  <meta name="description" content="Review, search, and manage synced Apple Notes with enrichment status and AI-extracted todos." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    /* ─── Design Tokens ─────────────────────────────────────── */
+    :root {
+      --bg:           #0a0b0f;
+      --bg-2:         #111217;
+      --bg-3:         #18191f;
+      --bg-4:         #1e2028;
+      --border:       rgba(255,255,255,0.07);
+      --border-hover: rgba(255,255,255,0.15);
+      --text:         #e8eaf0;
+      --text-2:       #9ea3b5;
+      --text-3:       #5c6278;
+      --accent:       #7c6bff;
+      --accent-dim:   rgba(124,107,255,0.15);
+      --accent-glow:  rgba(124,107,255,0.3);
+      --green:        #3ecf8e;
+      --green-dim:    rgba(62,207,142,0.12);
+      --amber:        #f59e0b;
+      --amber-dim:    rgba(245,158,11,0.12);
+      --red:          #f43f5e;
+      --red-dim:      rgba(244,63,94,0.12);
+      --blue:         #38bdf8;
+      --blue-dim:     rgba(56,189,248,0.12);
+      --radius:       12px;
+      --radius-sm:    8px;
+      --shadow:       0 4px 24px rgba(0,0,0,0.4);
+      --transition:   0.18s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    /* ─── Reset & Base ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ─── Scrollbar ─────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--bg-4); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-3); }
+
+    /* ─── Layout ─────────────────────────────────────────────── */
+    .app { display: grid; grid-template-rows: auto 1fr; min-height: 100vh; }
+
+    /* ─── Header ─────────────────────────────────────────────── */
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(10,11,15,0.85);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+    }
+
+    .header-inner {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      height: 60px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--accent), #a855f7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+
+    .logo-text {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: var(--text);
+    }
+
+    .logo-sub {
+      font-size: 11px;
+      color: var(--text-3);
+      font-weight: 400;
+    }
+
+    .header-divider {
+      width: 1px;
+      height: 24px;
+      background: var(--border);
+    }
+
+    /* ─── Search ─────────────────────────────────────────────── */
+    .search-wrap {
+      flex: 1;
+      max-width: 500px;
+      position: relative;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-3);
+      pointer-events: none;
+      font-size: 14px;
+    }
+
+    .search-input {
+      width: 100%;
+      background: var(--bg-3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 13px;
+      padding: 8px 12px 8px 36px;
+      outline: none;
+      transition: border-color var(--transition), box-shadow var(--transition);
+    }
+
+    .search-input::placeholder { color: var(--text-3); }
+
+    .search-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-dim);
+    }
+
+    /* ─── Header controls ──────────────────────────────────── */
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-left: auto;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--bg-3);
+      color: var(--text-2);
+      padding: 7px 14px;
+      cursor: pointer;
+      transition: all var(--transition);
+      white-space: nowrap;
+    }
+
+    .btn:hover {
+      background: var(--bg-4);
+      border-color: var(--border-hover);
+      color: var(--text);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: #6b5ce7;
+      border-color: #6b5ce7;
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .btn .spin {
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* ─── Stats bar ─────────────────────────────────────────── */
+    .stats-bar {
+      background: var(--bg-2);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+    }
+
+    .stats-inner {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      height: 44px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .stats-inner::-webkit-scrollbar { display: none; }
+
+    .stat-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      white-space: nowrap;
+      color: var(--text-2);
+      cursor: pointer;
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid transparent;
+      transition: all var(--transition);
+    }
+
+    .stat-item:hover,
+    .stat-item.active {
+      background: var(--bg-3);
+      border-color: var(--border);
+      color: var(--text);
+    }
+
+    .stat-item.active { border-color: var(--accent); background: var(--accent-dim); color: var(--accent); }
+
+    .stat-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .dot-all     { background: var(--text-3); }
+    .dot-done    { background: var(--green); }
+    .dot-pending { background: var(--amber); }
+    .dot-error   { background: var(--red); }
+
+    .stat-count {
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    .stats-sep { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; }
+
+    /* ─── Main Content ──────────────────────────────────────── */
+    .main {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 24px;
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    /* ─── Notes List Panel ──────────────────────────────────── */
+    .panel {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .panel-title {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-3);
+    }
+
+    .panel-count {
+      font-size: 11px;
+      color: var(--text-3);
+      background: var(--bg-3);
+      padding: 2px 8px;
+      border-radius: 20px;
+    }
+
+    /* ─── Sort Controls ─────────────────────────────────────── */
+    .sort-row {
+      display: flex;
+      gap: 6px;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-3);
+    }
+
+    .sort-btn {
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-3);
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+
+    .sort-btn:hover { background: var(--bg-4); color: var(--text-2); }
+    .sort-btn.active {
+      background: var(--accent-dim);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* ─── Note List ─────────────────────────────────────────── */
+    .notes-list {
+      max-height: calc(100vh - 220px);
+      overflow-y: auto;
+    }
+
+    .note-item {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: background var(--transition);
+      position: relative;
+    }
+
+    .note-item:last-child { border-bottom: none; }
+
+    .note-item:hover { background: var(--bg-3); }
+
+    .note-item.selected {
+      background: var(--accent-dim);
+      border-left: 2px solid var(--accent);
+      padding-left: 14px;
+    }
+
+    .note-item-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .note-item-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+      line-height: 1.4;
+      flex: 1;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+
+    .note-item-title.untitled { color: var(--text-3); font-style: italic; }
+
+    .status-badge {
+      flex-shrink: 0;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .status-done    { background: var(--green-dim); color: var(--green); }
+    .status-pending { background: var(--amber-dim); color: var(--amber); }
+    .status-error   { background: var(--red-dim);   color: var(--red); }
+
+    .note-item-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      color: var(--text-3);
+    }
+
+    .note-item-folder {
+      background: var(--bg-4);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      color: var(--text-3);
+      max-width: 100px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .note-item-summary {
+      font-size: 11.5px;
+      color: var(--text-3);
+      margin-top: 5px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      line-height: 1.5;
+    }
+
+    .note-todos-count {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 10px;
+      color: var(--accent);
+      background: var(--accent-dim);
+      padding: 1px 6px;
+      border-radius: 4px;
+    }
+
+    /* ─── Detail Panel ──────────────────────────────────────── */
+    .detail-panel {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      position: sticky;
+      top: 104px;
+      max-height: calc(100vh - 120px);
+      overflow-y: auto;
+    }
+
+    .detail-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      height: 400px;
+      color: var(--text-3);
+    }
+
+    .detail-empty-icon { font-size: 48px; opacity: 0.3; }
+    .detail-empty-text { font-size: 14px; }
+
+    .detail-header {
+      padding: 20px 24px 0;
+    }
+
+    .detail-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.3;
+      letter-spacing: -0.02em;
+      margin-bottom: 12px;
+    }
+
+    .detail-meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .meta-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      color: var(--text-2);
+      background: var(--bg-3);
+      border: 1px solid var(--border);
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+
+    .meta-pill svg { opacity: 0.7; }
+
+    .detail-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 0 24px;
+    }
+
+    /* ─── Detail Summary Block ──────────────────────────────── */
+    .detail-section {
+      padding: 18px 24px;
+    }
+
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-3);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .summary-box {
+      background: var(--bg-3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      font-size: 14px;
+      line-height: 1.65;
+      color: var(--text-2);
+    }
+
+    /* ─── Body Text ─────────────────────────────────────────── */
+    .body-text {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      line-height: 1.7;
+      color: var(--text-2);
+      background: var(--bg-3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      max-height: 280px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    /* ─── Todos ─────────────────────────────────────────────── */
+    .todos-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .todo-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      background: var(--bg-3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      transition: border-color var(--transition);
+    }
+
+    .todo-item:hover { border-color: var(--border-hover); }
+
+    .todo-check {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 2px solid var(--border-hover);
+      flex-shrink: 0;
+      margin-top: 2px;
+      cursor: pointer;
+      transition: all var(--transition);
+      background: transparent;
+      appearance: none;
+    }
+
+    .todo-check:hover {
+      border-color: var(--green);
+      background: var(--green-dim);
+    }
+
+    .todo-check:checked {
+      background: var(--green);
+      border-color: var(--green);
+    }
+
+    .todo-check:checked::after {
+      content: '✓';
+      color: #fff;
+      font-size: 10px;
+      position: absolute;
+    }
+
+    .todo-body { flex: 1; }
+
+    .todo-text {
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.4;
+      margin-bottom: 5px;
+    }
+
+    .todo-tags {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .business-tag {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .biz-dreamplay    { background: rgba(56,189,248,0.15); color: #38bdf8; }
+    .biz-musicalbasics { background: rgba(168,85,247,0.15); color: #a855f7; }
+    .biz-masterclass  { background: rgba(249,115,22,0.15); color: #f97316; }
+    .biz-concert      { background: rgba(236,72,153,0.15); color: #ec4899; }
+    .biz-personal     { background: rgba(52,211,153,0.15); color: #34d399; }
+    .biz-infra        { background: rgba(148,163,184,0.15); color: #94a3b8; }
+    .biz-unsorted     { background: var(--bg-4); color: var(--text-3); }
+
+    .due-tag {
+      font-size: 10px;
+      color: var(--amber);
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    /* ─── Loading skeleton ──────────────────────────────────── */
+    .skeleton {
+      background: linear-gradient(90deg, var(--bg-3) 25%, var(--bg-4) 50%, var(--bg-3) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: 4px;
+    }
+
+    @keyframes shimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    .skeleton-item {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* ─── Empty / Error states ──────────────────────────────── */
+    .empty-state {
+      padding: 48px 24px;
+      text-align: center;
+      color: var(--text-3);
+    }
+
+    .empty-icon { font-size: 32px; margin-bottom: 12px; opacity: 0.4; }
+    .empty-text { font-size: 13px; }
+
+    /* ─── Toasts ─────────────────────────────────────────────── */
+    .toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 999;
+    }
+
+    .toast {
+      background: var(--bg-3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 16px;
+      font-size: 13px;
+      color: var(--text);
+      box-shadow: var(--shadow);
+      animation: slideIn 0.2s ease;
+      max-width: 300px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .toast.success { border-color: var(--green); }
+    .toast.error   { border-color: var(--red); }
+
+    @keyframes slideIn {
+      from { transform: translateY(10px); opacity: 0; }
+      to   { transform: translateY(0);   opacity: 1; }
+    }
+
+    @keyframes fadeOut {
+      from { opacity: 1; }
+      to   { opacity: 0; transform: translateY(4px); }
+    }
+
+    .toast.removing { animation: fadeOut 0.2s ease forwards; }
+
+    /* ─── Responsive ─────────────────────────────────────────── */
+    @media (max-width: 900px) {
+      .main { grid-template-columns: 1fr; }
+      .detail-panel { position: static; max-height: none; }
+    }
+
+    @media (max-width: 600px) {
+      .main { padding: 12px; }
+      .header-inner { gap: 12px; }
+      .logo-sub { display: none; }
+    }
+
+    /* ─── Folder filter bar ─────────────────────────────────── */
+    .folder-filter {
+      display: flex;
+      gap: 6px;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .folder-filter::-webkit-scrollbar { display: none; }
+
+    .folder-chip {
+      font-family: inherit;
+      font-size: 11px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-3);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all var(--transition);
+    }
+
+    .folder-chip:hover { background: var(--bg-4); color: var(--text-2); }
+    .folder-chip.active {
+      background: var(--bg-3);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* ─── Enrich status in detail ────────────────────────────── */
+    .enrich-banner {
+      margin: 0 24px 0;
+      padding: 10px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .enrich-banner.pending { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(245,158,11,0.2); }
+    .enrich-banner.error   { background: var(--red-dim);   color: var(--red);   border: 1px solid rgba(244,63,94,0.2); }
+
+    /* ─── Sync status chip ──────────────────────────────────── */
+    .sync-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--text-3);
+    }
+
+    .sync-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.4; }
+    }
+
+    /* ─── Config modal ──────────────────────────────────────── */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      animation: fadeIn 0.15s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    .modal {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 480px;
+      padding: 28px;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+      animation: slideUp 0.2s ease;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(16px); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+
+    .modal-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .modal-sub {
+      font-size: 12px;
+      color: var(--text-3);
+      margin-bottom: 20px;
+    }
+
+    .form-group { margin-bottom: 14px; }
+
+    .form-label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--text-3);
+      margin-bottom: 6px;
+    }
+
+    .form-input {
+      width: 100%;
+      background: var(--bg-3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      padding: 10px 12px;
+      outline: none;
+      transition: border-color var(--transition), box-shadow var(--transition);
+    }
+
+    .form-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-dim);
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 20px;
+    }
+
+    /* ─── Limit picker ──────────────────────────────────────── */
+    .limit-select {
+      background: var(--bg-3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-2);
+      font-family: inherit;
+      font-size: 12px;
+      padding: 6px 10px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .limit-select:focus { border-color: var(--accent); }
+  </style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <!-- ── Header ─────────────────────────────────────────────── -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo">
+        <div class="logo-icon">📝</div>
+        <div>
+          <div class="logo-text">Notes Review</div>
+          <div class="logo-sub">Apple Notes → Supabase</div>
+        </div>
+      </div>
+
+      <div class="header-divider"></div>
+
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input
+          id="search-input"
+          class="search-input"
+          type="search"
+          placeholder="Search title or body…"
+          autocomplete="off"
+          spellcheck="false"
+        />
+      </div>
+
+      <div class="header-controls">
+        <div class="sync-status" id="sync-status" style="display:none">
+          <div class="sync-dot"></div>
+          <span id="sync-label">Connected</span>
+        </div>
+
+        <select class="limit-select" id="limit-select">
+          <option value="30">30 notes</option>
+          <option value="50" selected>50 notes</option>
+          <option value="100">100 notes</option>
+          <option value="200">200 notes</option>
+        </select>
+
+        <button class="btn" id="refresh-btn" onclick="loadNotes()">
+          <span id="refresh-icon">↻</span> Refresh
+        </button>
+
+        <button class="btn btn-primary" id="settings-btn" onclick="openSettings()">
+          ⚙ Config
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Stats bar ───────────────────────────────────────────── -->
+  <div class="stats-bar">
+    <div class="stats-inner" id="stats-inner">
+      <div class="stat-item active" data-filter="all" onclick="setStatusFilter('all')">
+        <div class="stat-dot dot-all"></div>
+        <span>All</span>
+        <span class="stat-count" id="count-all">–</span>
+      </div>
+      <div class="stats-sep"></div>
+      <div class="stat-item" data-filter="done" onclick="setStatusFilter('done')">
+        <div class="stat-dot dot-done"></div>
+        <span>Enriched</span>
+        <span class="stat-count" id="count-done">–</span>
+      </div>
+      <div class="stat-item" data-filter="pending" onclick="setStatusFilter('pending')">
+        <div class="stat-dot dot-pending"></div>
+        <span>Pending</span>
+        <span class="stat-count" id="count-pending">–</span>
+      </div>
+      <div class="stat-item" data-filter="error" onclick="setStatusFilter('error')">
+        <div class="stat-dot dot-error"></div>
+        <span>Error</span>
+        <span class="stat-count" id="count-error">–</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Main ─────────────────────────────────────────────────── -->
+  <main class="main">
+
+    <!-- Notes list panel -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Recent Notes</div>
+        <div class="panel-count" id="list-count">–</div>
+      </div>
+
+      <!-- Sort row -->
+      <div class="sort-row">
+        <button class="sort-btn active" data-sort="modified" onclick="setSort('modified')">Modified</button>
+        <button class="sort-btn" data-sort="created" onclick="setSort('created')">Created</button>
+        <button class="sort-btn" data-sort="title" onclick="setSort('title')">Title A–Z</button>
+      </div>
+
+      <!-- Folder filter -->
+      <div class="folder-filter" id="folder-filter">
+        <button class="folder-chip active" data-folder="" onclick="setFolderFilter('')">All folders</button>
+      </div>
+
+      <div class="notes-list" id="notes-list">
+        <!-- skeleton placeholders -->
+        <div id="skeleton-list">
+          ${skeletonItems(8)}
+        </div>
+      </div>
+    </div>
+
+    <!-- Detail panel -->
+    <div class="detail-panel" id="detail-panel">
+      <div class="detail-empty">
+        <div class="detail-empty-icon">📄</div>
+        <div class="detail-empty-text">Select a note to view details</div>
+      </div>
+    </div>
+
+  </main>
+
+</div>
+
+<!-- ── Toast container ─────────────────────────────────────── -->
+<div class="toast-container" id="toasts"></div>
+
+<!-- ── Config modal ───────────────────────────────────────── -->
+<div class="modal-backdrop" id="settings-modal" style="display:none" onclick="closeSettingsOutside(event)">
+  <div class="modal">
+    <div class="modal-title">Supabase Configuration</div>
+    <div class="modal-sub">Stored locally in your browser — never sent anywhere.</div>
+
+    <div class="form-group">
+      <label class="form-label" for="cfg-url">Supabase Project URL</label>
+      <input class="form-input" id="cfg-url" type="url" placeholder="https://xxxx.supabase.co" />
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="cfg-key">Service Role Key</label>
+      <input class="form-input" id="cfg-key" type="password" placeholder="sb_secret_…" />
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn" onclick="closeSettings()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveSettings()">Save & Connect</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── State ─────────────────────────────────────────────────────
+let allNotes = [];
+let filteredNotes = [];
+let selectedNote = null;
+let todosMap = {};       // noteId -> todos[]
+let statusFilter = 'all';
+let sortMode = 'modified';
+let folderFilter = '';
+let searchQuery = '';
+
+// ─── Config (localStorage) ──────────────────────────────────────
+const CFG_KEY = 'notes_review_config';
+
+function getConfig() {
+  try {
+    return JSON.parse(localStorage.getItem(CFG_KEY) || '{}');
+  } catch { return {}; }
+}
+
+function saveConfig(cfg) {
+  localStorage.setItem(CFG_KEY, JSON.stringify(cfg));
+}
+
+function openSettings() {
+  const cfg = getConfig();
+  document.getElementById('cfg-url').value = cfg.url || '';
+  document.getElementById('cfg-key').value = cfg.key || '';
+  document.getElementById('settings-modal').style.display = 'flex';
+}
+
+function closeSettings() {
+  document.getElementById('settings-modal').style.display = 'none';
+}
+
+function closeSettingsOutside(e) {
+  if (e.target === document.getElementById('settings-modal')) closeSettings();
+}
+
+function saveSettings() {
+  const url = document.getElementById('cfg-url').value.trim().replace(/\/$/, '');
+  const key = document.getElementById('cfg-key').value.trim();
+  if (!url || !key) { showToast('Both URL and Key are required.', 'error'); return; }
+  saveConfig({ url, key });
+  closeSettings();
+  showToast('Configuration saved. Loading notes…', 'success');
+  loadNotes();
+}
+
+// ─── Supabase REST helper ───────────────────────────────────────
+async function sbGet(path, params = {}) {
+  const cfg = getConfig();
+  if (!cfg.url || !cfg.key) throw new Error('NOT_CONFIGURED');
+
+  const qs = new URLSearchParams(params).toString();
+  const url = `${cfg.url}/rest/v1/${path}${qs ? '?' + qs : ''}`;
+
+  const res = await fetch(url, {
+    headers: {
+      'apikey': cfg.key,
+      'Authorization': `Bearer ${cfg.key}`,
+      'Accept': 'application/json',
+    }
+  });
+
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`Supabase ${res.status}: ${txt}`);
+  }
+  return res.json();
+}
+
+async function sbPatch(path, id, body) {
+  const cfg = getConfig();
+  const url = `${cfg.url}/rest/v1/${path}?id=eq.${id}`;
+  const res = await fetch(url, {
+    method: 'PATCH',
+    headers: {
+      'apikey': cfg.key,
+      'Authorization': `Bearer ${cfg.key}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=minimal',
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`PATCH failed: ${res.status}`);
+}
+
+// ─── Load notes ─────────────────────────────────────────────────
+async function loadNotes() {
+  const cfg = getConfig();
+  if (!cfg.url || !cfg.key) {
+    showSkeleton(true);
+    openSettings();
+    return;
+  }
+
+  setRefreshing(true);
+
+  try {
+    const limit = document.getElementById('limit-select').value;
+    const params = {
+      select: 'id,title,folder,source_created_at,source_modified_at,enrichment_status,summary,body',
+      order: 'source_modified_at.desc',
+      limit,
+    };
+
+    const notes = await sbGet('notes', params);
+    allNotes = notes;
+
+    // Compute folder list
+    buildFolderFilter(notes);
+
+    // Load todo counts
+    await loadTodoCounts(notes.map(n => n.id));
+
+    // Compute stats
+    updateStats(notes);
+
+    applyFilters();
+    showSkeleton(false);
+
+    document.getElementById('sync-status').style.display = 'flex';
+    document.getElementById('sync-label').textContent = `${notes.length} notes loaded`;
+
+    showToast(`Loaded ${notes.length} notes`, 'success');
+
+  } catch (err) {
+    showSkeleton(false);
+    if (err.message === 'NOT_CONFIGURED') {
+      openSettings();
+    } else {
+      console.error(err);
+      showToast('Error: ' + err.message, 'error');
+      document.getElementById('notes-list').innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">⚠️</div>
+          <div class="empty-text">${err.message}</div>
+        </div>`;
+    }
+  } finally {
+    setRefreshing(false);
+  }
+}
+
+async function loadTodoCounts(noteIds) {
+  if (!noteIds.length) return;
+  try {
+    // Fetch all open todos for these notes
+    const todos = await sbGet('todos', {
+      select: 'id,note_id,text,business,due_date,status,created_at',
+      'note_id': `in.(${noteIds.join(',')})`,
+      order: 'created_at.asc',
+    });
+
+    todosMap = {};
+    for (const t of todos) {
+      if (!todosMap[t.note_id]) todosMap[t.note_id] = [];
+      todosMap[t.note_id].push(t);
+    }
+  } catch (e) {
+    // non-fatal
+    console.warn('Could not load todos:', e);
+  }
+}
+
+// ─── Filters & sorting ──────────────────────────────────────────
+function setStatusFilter(f) {
+  statusFilter = f;
+  document.querySelectorAll('.stat-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.filter === f);
+  });
+  applyFilters();
+}
+
+function setSort(s) {
+  sortMode = s;
+  document.querySelectorAll('.sort-btn').forEach(el => {
+    el.classList.toggle('active', el.dataset.sort === s);
+  });
+  applyFilters();
+}
+
+function setFolderFilter(f) {
+  folderFilter = f;
+  document.querySelectorAll('.folder-chip').forEach(el => {
+    el.classList.toggle('active', el.dataset.folder === f);
+  });
+  applyFilters();
+}
+
+function applyFilters() {
+  let notes = [...allNotes];
+
+  // Status filter
+  if (statusFilter !== 'all') {
+    notes = notes.filter(n => n.enrichment_status === statusFilter);
+  }
+
+  // Folder filter
+  if (folderFilter) {
+    notes = notes.filter(n => (n.folder || '') === folderFilter);
+  }
+
+  // Search
+  if (searchQuery) {
+    const q = searchQuery.toLowerCase();
+    notes = notes.filter(n =>
+      (n.title || '').toLowerCase().includes(q) ||
+      (n.body  || '').toLowerCase().includes(q) ||
+      (n.summary || '').toLowerCase().includes(q)
+    );
+  }
+
+  // Sort
+  notes.sort((a, b) => {
+    if (sortMode === 'modified') return cmpDate(b.source_modified_at, a.source_modified_at);
+    if (sortMode === 'created')  return cmpDate(b.source_created_at,  a.source_created_at);
+    if (sortMode === 'title')    return (a.title || '').localeCompare(b.title || '');
+    return 0;
+  });
+
+  filteredNotes = notes;
+  renderList(notes);
+}
+
+function cmpDate(a, b) {
+  return new Date(a || 0) - new Date(b || 0);
+}
+
+// ─── Render list ────────────────────────────────────────────────
+function renderList(notes) {
+  const el = document.getElementById('notes-list');
+  document.getElementById('list-count').textContent = `${notes.length}`;
+
+  if (!notes.length) {
+    el.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">🔎</div>
+      <div class="empty-text">No notes match your filters</div>
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = notes.map(n => noteItemHTML(n)).join('');
+
+  // Re-apply selected state
+  if (selectedNote) {
+    const el2 = document.querySelector(`.note-item[data-id="${selectedNote.id}"]`);
+    if (el2) el2.classList.add('selected');
+  }
+}
+
+function noteItemHTML(n) {
+  const title = n.title || '';
+  const titleClass = title ? '' : 'untitled';
+  const titleText = title || 'Untitled note';
+  const modified = relativeTime(n.source_modified_at);
+  const folder = n.folder || '';
+  const status = n.enrichment_status || 'pending';
+  const todos = todosMap[n.id] || [];
+  const openTodos = todos.filter(t => t.status === 'open');
+
+  return `
+    <div class="note-item" data-id="${n.id}" onclick="selectNote('${n.id}')">
+      <div class="note-item-top">
+        <div class="note-item-title ${titleClass}">${escHtml(titleText)}</div>
+        <span class="status-badge status-${status}">${status}</span>
+      </div>
+      <div class="note-item-meta">
+        <span>${modified}</span>
+        ${folder ? `<span class="note-item-folder" title="${escHtml(folder)}">${escHtml(folder)}</span>` : ''}
+        ${openTodos.length ? `<span class="note-todos-count">✓ ${openTodos.length} todo${openTodos.length > 1 ? 's' : ''}</span>` : ''}
+      </div>
+      ${n.summary ? `<div class="note-item-summary">${escHtml(n.summary)}</div>` : ''}
+    </div>`;
+}
+
+// ─── Select note ────────────────────────────────────────────────
+function selectNote(id) {
+  const note = allNotes.find(n => n.id === id);
+  if (!note) return;
+
+  selectedNote = note;
+
+  // Highlight in list
+  document.querySelectorAll('.note-item').forEach(el => {
+    el.classList.toggle('selected', el.dataset.id === id);
+  });
+
+  renderDetail(note);
+}
+
+function renderDetail(note) {
+  const panel = document.getElementById('detail-panel');
+  const title = note.title || 'Untitled note';
+  const status = note.enrichment_status || 'pending';
+  const todos = todosMap[note.id] || [];
+  const openTodos = todos.filter(t => t.status === 'open');
+  const doneTodos = todos.filter(t => t.status !== 'open');
+
+  const enrichBanner = status === 'pending'
+    ? `<div class="enrich-banner pending">⏳ Awaiting enrichment — summary and todos will appear after the next enrichment run.</div>`
+    : status === 'error'
+    ? `<div class="enrich-banner error">⚠️ Enrichment failed for this note.</div>`
+    : '';
+
+  panel.innerHTML = `
+    <div class="detail-header">
+      <div class="detail-title">${escHtml(title)}</div>
+      <div class="detail-meta-row">
+        <span class="meta-pill">📅 Modified ${relativeTime(note.source_modified_at)}</span>
+        <span class="meta-pill">📁 ${escHtml(note.folder || 'No folder')}</span>
+        <span class="status-badge status-${status}" style="font-size:11px">${status}</span>
+        ${note.enriched_at ? `<span class="meta-pill">✨ Enriched ${relativeTime(note.enriched_at)}</span>` : ''}
+      </div>
+    </div>
+
+    ${enrichBanner ? `<div style="padding: 0 24px 0">${enrichBanner}</div>` : ''}
+
+    <div class="detail-divider"></div>
+
+    ${note.summary ? `
+    <div class="detail-section">
+      <div class="section-label">📋 AI Summary</div>
+      <div class="summary-box">${escHtml(note.summary)}</div>
+    </div>
+    <div class="detail-divider"></div>
+    ` : ''}
+
+    ${openTodos.length ? `
+    <div class="detail-section">
+      <div class="section-label">✅ Open Todos (${openTodos.length})</div>
+      <div class="todos-list">
+        ${openTodos.map(t => todoHTML(t)).join('')}
+      </div>
+    </div>
+    <div class="detail-divider"></div>
+    ` : ''}
+
+    ${doneTodos.length ? `
+    <div class="detail-section">
+      <div class="section-label">✓ Completed Todos (${doneTodos.length})</div>
+      <div class="todos-list" style="opacity:0.5">
+        ${doneTodos.map(t => todoHTML(t, true)).join('')}
+      </div>
+    </div>
+    <div class="detail-divider"></div>
+    ` : ''}
+
+    ${note.body ? `
+    <div class="detail-section">
+      <div class="section-label">📝 Full Note</div>
+      <div class="body-text">${escHtml(note.body)}</div>
+    </div>
+    ` : ''}
+
+    <div class="detail-section" style="padding-top:8px;padding-bottom:16px">
+      <div class="section-label">🔑 Metadata</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-3);line-height:1.8">
+        <div>ID: ${note.id}</div>
+        <div>Created: ${fmtDate(note.source_created_at)}</div>
+        <div>Modified: ${fmtDate(note.source_modified_at)}</div>
+        <div>Hash: ${note.content_hash ? note.content_hash.slice(0,16) + '…' : '–'}</div>
+      </div>
+    </div>
+  `;
+}
+
+function todoHTML(t, done = false) {
+  const bizClass = `biz-${(t.business || 'unsorted').replace(/\s/g, '')}`;
+  return `
+    <div class="todo-item" style="${done ? 'opacity:0.6' : ''}">
+      <input
+        type="checkbox"
+        class="todo-check"
+        ${done ? 'checked' : ''}
+        id="todo-${t.id}"
+        onchange="toggleTodo('${t.id}', this.checked)"
+      />
+      <div class="todo-body">
+        <div class="todo-text" style="${done ? 'text-decoration:line-through' : ''}">${escHtml(t.text)}</div>
+        <div class="todo-tags">
+          <span class="business-tag ${bizClass}">${t.business || 'unsorted'}</span>
+          ${t.due_date ? `<span class="due-tag">📅 ${t.due_date}</span>` : ''}
+        </div>
+      </div>
+    </div>`;
+}
+
+async function toggleTodo(todoId, checked) {
+  try {
+    const newStatus = checked ? 'done' : 'open';
+    await sbPatch('todos', todoId, { status: newStatus });
+
+    // Update in local state
+    for (const noteId in todosMap) {
+      const t = todosMap[noteId].find(t => t.id === todoId);
+      if (t) {
+        t.status = newStatus;
+        break;
+      }
+    }
+
+    if (selectedNote) renderDetail(selectedNote);
+    renderList(filteredNotes);
+    showToast(checked ? 'Todo marked done ✓' : 'Todo reopened', 'success');
+  } catch (e) {
+    showToast('Failed to update todo: ' + e.message, 'error');
+  }
+}
+
+// ─── Stats ──────────────────────────────────────────────────────
+function updateStats(notes) {
+  const counts = { all: notes.length, done: 0, pending: 0, error: 0 };
+  for (const n of notes) {
+    if (n.enrichment_status === 'done')    counts.done++;
+    if (n.enrichment_status === 'pending') counts.pending++;
+    if (n.enrichment_status === 'error')   counts.error++;
+  }
+  document.getElementById('count-all').textContent     = counts.all;
+  document.getElementById('count-done').textContent    = counts.done;
+  document.getElementById('count-pending').textContent = counts.pending;
+  document.getElementById('count-error').textContent   = counts.error;
+}
+
+// ─── Folder filter ──────────────────────────────────────────────
+function buildFolderFilter(notes) {
+  const folders = [...new Set(notes.map(n => n.folder).filter(Boolean))].sort();
+  const bar = document.getElementById('folder-filter');
+  bar.innerHTML = `<button class="folder-chip active" data-folder="" onclick="setFolderFilter('')">All folders</button>`;
+  for (const f of folders) {
+    const btn = document.createElement('button');
+    btn.className = 'folder-chip';
+    btn.dataset.folder = f;
+    btn.textContent = f;
+    btn.onclick = () => setFolderFilter(f);
+    bar.appendChild(btn);
+  }
+}
+
+// ─── Helpers ────────────────────────────────────────────────────
+function escHtml(s) {
+  return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function relativeTime(iso) {
+  if (!iso) return '–';
+  const diff = Date.now() - new Date(iso).getTime();
+  const s = Math.floor(diff / 1000);
+  if (s < 60)     return 'just now';
+  if (s < 3600)   return `${Math.floor(s/60)}m ago`;
+  if (s < 86400)  return `${Math.floor(s/3600)}h ago`;
+  if (s < 604800) return `${Math.floor(s/86400)}d ago`;
+  return fmtDateShort(iso);
+}
+
+function fmtDate(iso) {
+  if (!iso) return '–';
+  return new Date(iso).toLocaleString();
+}
+
+function fmtDateShort(iso) {
+  if (!iso) return '–';
+  return new Date(iso).toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' });
+}
+
+// ─── UI helpers ─────────────────────────────────────────────────
+function setRefreshing(on) {
+  const btn = document.getElementById('refresh-btn');
+  const icon = document.getElementById('refresh-icon');
+  btn.disabled = on;
+  if (on) {
+    icon.textContent = '↻';
+    icon.classList.add('spin');
+  } else {
+    icon.classList.remove('spin');
+    icon.textContent = '↻';
+  }
+}
+
+function showSkeleton(on) {
+  const sk = document.getElementById('skeleton-list');
+  if (sk) sk.style.display = on ? 'block' : 'none';
+}
+
+function showToast(msg, type = '') {
+  const c = document.getElementById('toasts');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  const icon = type === 'success' ? '✓' : type === 'error' ? '✕' : 'ℹ';
+  t.innerHTML = `<span>${icon}</span><span>${escHtml(msg)}</span>`;
+  c.appendChild(t);
+  setTimeout(() => {
+    t.classList.add('removing');
+    setTimeout(() => t.remove(), 250);
+  }, 3000);
+}
+
+// ─── Skeleton HTML ──────────────────────────────────────────────
+function skeletonItems(n) {
+  return Array.from({length: n}, (_, i) => `
+    <div class="skeleton-item">
+      <div class="skeleton" style="height:14px;width:${60+Math.random()*30}%;margin-bottom:8px"></div>
+      <div class="skeleton" style="height:11px;width:40%;margin-bottom:6px"></div>
+      <div class="skeleton" style="height:11px;width:85%"></div>
+    </div>`).join('');
+}
+
+// ─── Search debounce ────────────────────────────────────────────
+let searchTimer;
+document.getElementById('search-input').addEventListener('input', e => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    searchQuery = e.target.value.trim();
+    applyFilters();
+  }, 200);
+});
+
+document.getElementById('limit-select').addEventListener('change', () => loadNotes());
+
+// ─── Keyboard ───────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeSettings();
+
+  if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && filteredNotes.length) {
+    e.preventDefault();
+    const idx = filteredNotes.findIndex(n => n.id === selectedNote?.id);
+    let next = e.key === 'ArrowDown' ? idx + 1 : idx - 1;
+    next = Math.max(0, Math.min(filteredNotes.length - 1, next));
+    selectNote(filteredNotes[next].id);
+
+    const el = document.querySelector(`.note-item[data-id="${filteredNotes[next].id}"]`);
+    el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+
+  if (e.key === 'r' && (e.metaKey || e.ctrlKey)) {
+    e.preventDefault();
+    loadNotes();
+  }
+});
+
+// ─── Init ───────────────────────────────────────────────────────
+(function init() {
+  // Render static skeleton until data loads
+  document.getElementById('notes-list').innerHTML = skeletonItems(8);
+
+  const cfg = getConfig();
+
+  if (cfg.url && cfg.key) {
+    loadNotes();
+  } else {
+    // No config yet — prompt user to enter credentials
+    document.getElementById('notes-list').innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">⚙️</div>
+        <div class="empty-text">Click <strong>Config</strong> to connect to Supabase</div>
+      </div>`;
+    openSettings();
+  }
+})();
+</script>
+</body>
+</html>
